@@ -1,11 +1,12 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject } from 'rxjs/BehaviorSubject';
 import { Observable } from 'rxjs/Observable';
+import { Subject } from 'rxjs/Subject';
 import "rxjs/add/operator/map";
 import "rxjs/add/operator/merge";
 import 'rxjs/add/operator/debounceTime';
-
+import 'rxjs/add/operator/takeUntil';
 
 interface sortBy {
   field: string;
@@ -23,15 +24,17 @@ interface field {
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
-export class AppComponent {
+export class AppComponent implements OnInit, OnDestroy {
   title = 'app';
 
-  public data$: BehaviorSubject<any[]>;
-  public pageData$: BehaviorSubject<any[]>;
-  public page$: BehaviorSubject<number>;
-  public sorting$: BehaviorSubject<sortBy>;
-  public search$: BehaviorSubject<string>;
-  public pageCount$: BehaviorSubject<number>;
+  destroy$: Subject<boolean> = new Subject<boolean>();
+
+  public data$: BehaviorSubject<any[]> = new BehaviorSubject([]);
+  public pageData$: BehaviorSubject<any[]> = new BehaviorSubject([]);
+  public page$: BehaviorSubject<number> = new BehaviorSubject(0);
+  public sorting$: BehaviorSubject<sortBy> = new BehaviorSubject(null);
+  public search$: BehaviorSubject<string> = new BehaviorSubject("");
+  public pageCount$: BehaviorSubject<number> = new BehaviorSubject(0);
 
   private pageSize = 20;
 
@@ -47,17 +50,12 @@ export class AppComponent {
 
   ngOnInit(): void {
 
-    this.data$ = new BehaviorSubject([]);
-    this.pageData$ = new BehaviorSubject([]);
-    this.sorting$ = new BehaviorSubject(null);
-    this.page$ = new BehaviorSubject(0);
-    this.pageCount$ = new BehaviorSubject(0);
-    this.search$ = new BehaviorSubject("");
 
     this.data$
       .merge(this.sorting$)
       .merge(this.page$)
       .merge(this.search$.debounceTime(300))
+      .takeUntil(this.destroy$)
       .subscribe(() => {
         let rows = this.data$.value.slice();
         const page = this.page$.value;
@@ -101,6 +99,11 @@ export class AppComponent {
     this.http.get('/assets/data.json').subscribe(data => {
       this.data$.next(<any[]>data);
     });
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next(true);
+    this.destroy$.unsubscribe();
   }
 
   public sortBy(fieldName: string) {

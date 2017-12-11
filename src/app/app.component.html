@@ -8,10 +8,6 @@
   </tr>
 
   <tr *ngFor="let item of (pageData$ | async)">
-    <td>{{item.index}}</td>
-    <td>{{item.name}}</td>
-    <td>{{item.age}}</td>
-    <td>{{item.email}}</td>
-    <td>{{item.phone}}</td>
+    <td *ngFor="let field of fields">{{item[field.name]}}</td>
   </tr>
 </table>
